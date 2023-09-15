@@ -4,6 +4,7 @@
 #include "error.h"
 #include "file.h"
 #include "inline.h"
+#include "redis.h"
 
 #undef NDEBUG
 
@@ -23,8 +24,8 @@ typedef struct write_buffer write_buffer;
 struct proof {
   write_buffer buffer;
   kissat *solver;
+  redis redis;
   bool binary;
-  file *file;
   ints line;
   uint64_t added;
   uint64_t deleted;
@@ -51,24 +52,56 @@ struct proof {
   LOGINTS3 (SIZE_STACK (proof->line), BEGIN_STACK (proof->line), \
             __VA_ARGS__)
 
-void kissat_init_proof (kissat *solver, file *file, bool binary) {
-  assert (file);
+void kissat_init_proof (kissat *solver, bool binary) {
   assert (!solver->proof);
   proof *proof = kissat_calloc (solver, 1, sizeof (struct proof));
   proof->binary = binary;
-  proof->file = file;
   proof->solver = solver;
   solver->proof = proof;
+  {
+    proof->redis.host = "127.0.0.1";
+    proof->redis.port = 6379;
+    proof->redis.last_from_kissat_id = 0;
+    proof->redis.last_to_kissat_id = 0;
+  }
   LOG ("starting to trace %s proof", binary ? "binary" : "non-binary");
+}
+
+static void save_in_database_with_split(proof *proof, size_t bytes, unsigned char sep) {
+  redisContext* context = get_context(&proof->redis);
+
+  write_buffer *write_buffer = &proof->buffer;
+  int len = 0;
+  chars* substr_start = write_buffer->chars;
+
+  for (int i = 0; i < bytes; i++) {
+    if (write_buffer->chars[i] != sep) {
+      len++;
+    } else {
+      redis_save(context, &proof->redis, len, substr_start);
+      substr_start = write_buffer->chars + len + 1;
+      len = 0;
+    }
+  }
+  redis_free(context);
+
+  strncpy(write_buffer->chars, substr_start, len);
+  write_buffer->pos = len;
+}
+
+static void save_in_database(proof *proof, size_t bytes) {
+  if (proof->binary) {
+    save_in_database_with_split(proof, bytes, 0);
+  } else {
+    save_in_database_with_split(proof, bytes, '\n');
+  }
 }
 
 static void flush_buffer (proof *proof) {
   size_t bytes = proof->buffer.pos;
   if (!bytes)
     return;
-  size_t written = kissat_write (proof->file, proof->buffer.chars, bytes);
-  if (bytes != written)
-    kissat_fatal ("flushing %zu bytes in proof write-buffer failed", bytes);
+  save_in_database (proof, bytes);
   proof->buffer.pos = 0;
 }
 
@@ -77,7 +110,6 @@ void kissat_release_proof (kissat *solver) {
   assert (proof);
   LOG ("stopping to trace proof");
   flush_buffer (proof);
-  kissat_flush (proof->file);
   RELEASE_STACK (proof->line);
 #ifndef NDEBUG
   kissat_free (solver, proof->units, proof->size_units);
@@ -99,8 +131,6 @@ void kissat_print_proof_statistics (kissat *solver, bool verbose) {
   proof *proof = solver->proof;
   PRINT_STAT ("proof_added", proof->added, PERCENT_LINES (added), "%",
               "per line");
-  PRINT_STAT ("proof_bytes", proof->file->bytes,
-              proof->file->bytes / (double) (1 << 20), "MB", "");
   PRINT_STAT ("proof_deleted", proof->deleted, PERCENT_LINES (deleted), "%",
               "per line");
   if (verbose)
@@ -241,7 +271,6 @@ static void print_proof_line (proof *proof) {
 #endif
   if (GET_OPTION (flushproof)) {
     flush_buffer (proof);
-    kissat_flush (proof->file);
   }
 }
 

@@ -142,6 +142,7 @@ int kissat_search (kissat *solver) {
   while (!res) {
     clause *conflict = kissat_search_propagate (solver);
     if (conflict)
+
       res = kissat_analyze (solver, conflict);
     else if (solver->iterating)
       iterate (solver);

@@ -5,13 +5,14 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <hiredis.h>
 
 typedef struct proof proof;
 
 struct clause;
 struct file;
 
-void kissat_init_proof (struct kissat *, struct file *, bool binary);
+void kissat_init_proof (struct kissat *, bool binary);
 void kissat_release_proof (struct kissat *);
 
 #ifndef QUIET

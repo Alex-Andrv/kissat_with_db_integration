@@ -125,9 +125,12 @@ void kissat_learn_clause (kissat *solver) {
     kissat_update_learned (solver, glue, size);
   assert (size > 0);
   if (size == 1)
+    //    TODO
     learn_unit (solver, not_uip);
   else if (size == 2)
+    //    TODO
     learn_binary (solver, not_uip);
   else
+    //    TODO
     learn_reference (solver, not_uip, glue);
 }

@@ -651,28 +651,9 @@ static bool parse_input (application *application) {
 #ifndef NPROOFS
 
 static bool write_proof (application *application) {
-  const char *path = application->proof_path;
-  if (!path)
-    return true;
-  file *file = &application->proof_file;
-  bool binary = true;
-  if (!strcmp (path, "-")) {
-    binary = false;
-    kissat_write_already_open_file (file, stdout, "<stdout>");
-  } else if (!kissat_open_to_write_file (file, path))
-    ERROR ("failed to open and write proof to '%s'", path);
-  else if (application->binary < 0)
-    binary = false;
-  kissat_init_proof (application->solver, file, binary);
-#ifndef QUIET
-  kissat *solver = application->solver;
-  kissat_section (solver, "proving");
-  kissat_message (solver, "%swriting proof to %sDRAT file:",
-                  file->close ? "opened and " : "",
-                  file->compressed ? "compressed " : "");
-  kissat_line (solver);
-  kissat_message (solver, "  %s", file->path);
-#endif
+  bool binary = false;
+
+  kissat_init_proof (application->solver, binary);
   return true;
 }
 
