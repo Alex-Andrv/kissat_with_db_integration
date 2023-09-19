@@ -1,20 +1,28 @@
+#ifndef REDIS_H
+#define REDIS_H
+
 #include "stack.h"
+
 #include <hiredis.h>
 
 typedef struct redis redis;
 
 struct redis {
-  int host;
-  const char * port;
+  const char * host;
+  int port;
   unsigned int last_from_kissat_id;
   unsigned int last_to_kissat_id;
+  unsigned int cnt_nope;
 };
 
 
-static inline redisContext* get_context(redis*);
+redisContext* get_context(redis*);
 
-static inline void redis_free(redisContext*);
+void redis_free(redisContext*);
 
-static inline redis_save(redisContext*, redis*, int, chars*);
+void redis_save(redisContext*, redis*, unsigned char*);
 
+bool load_clause(kissat*, redisContext*, redis*);
+
+#endif // REDIS_H
 

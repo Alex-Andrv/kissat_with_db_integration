@@ -15,6 +15,7 @@
 #include "terminate.h"
 #include "trail.h"
 #include "walk.h"
+#include "loading_from_redis.h"
 
 #include <inttypes.h>
 
@@ -142,7 +143,6 @@ int kissat_search (kissat *solver) {
   while (!res) {
     clause *conflict = kissat_search_propagate (solver);
     if (conflict)
-
       res = kissat_analyze (solver, conflict);
     else if (solver->iterating)
       iterate (solver);
@@ -156,9 +156,10 @@ int kissat_search (kissat *solver) {
       res = kissat_reduce (solver);
     else if (kissat_switching_search_mode (solver))
       kissat_switch_search_mode (solver);
-    else if (kissat_restarting (solver))
+    else if (kissat_restarting (solver)) {
       kissat_restart (solver);
-    else if (kissat_rephasing (solver))
+      kissat_load_from_redis (solver);
+    } else if (kissat_rephasing (solver))
       kissat_rephase (solver);
     else if (kissat_probing (solver))
       res = kissat_probe (solver);

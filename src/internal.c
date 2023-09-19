@@ -10,6 +10,7 @@
 #include "resize.h"
 #include "resources.h"
 #include "search.h"
+#include "redis.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -37,6 +38,14 @@ kissat *kissat_init (void) {
   solver->scinc = 1.0;
   solver->first_reducible = INVALID_REF;
   solver->last_irredundant = INVALID_REF;
+  {
+    solver->redis = kissat_calloc (solver, 1, sizeof (struct redis));
+    solver->redis->host = "127.0.0.1";
+    solver->redis->port = 6379;
+    solver->redis->last_from_kissat_id = 0;
+    solver->redis->last_to_kissat_id = 0;
+    solver->redis->cnt_nope = 0;
+  }
 #ifndef NDEBUG
   kissat_init_checker (solver);
 #endif

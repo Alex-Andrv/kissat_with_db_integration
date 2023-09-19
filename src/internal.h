@@ -31,6 +31,7 @@
 #include "value.h"
 #include "vector.h"
 #include "watch.h"
+#include "redis.h"
 
 typedef struct datarank datarank;
 
@@ -232,6 +233,8 @@ struct kissat {
 #ifndef NPROOFS
   proof *proof;
 #endif
+
+  redis *redis;
 };
 
 #define VARS (solver->vars)

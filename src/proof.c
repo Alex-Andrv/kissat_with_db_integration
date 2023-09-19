@@ -24,7 +24,7 @@ typedef struct write_buffer write_buffer;
 struct proof {
   write_buffer buffer;
   kissat *solver;
-  redis redis;
+  redis *redis;
   bool binary;
   ints line;
   uint64_t added;
@@ -54,16 +54,12 @@ struct proof {
 
 void kissat_init_proof (kissat *solver, bool binary) {
   assert (!solver->proof);
+  assert (solver->redis);
   proof *proof = kissat_calloc (solver, 1, sizeof (struct proof));
   proof->binary = binary;
   proof->solver = solver;
   solver->proof = proof;
-  {
-    proof->redis.host = "127.0.0.1";
-    proof->redis.port = 6379;
-    proof->redis.last_from_kissat_id = 0;
-    proof->redis.last_to_kissat_id = 0;
-  }
+  proof->redis = solver->redis;
   LOG ("starting to trace %s proof", binary ? "binary" : "non-binary");
 }
 
@@ -72,14 +68,16 @@ static void save_in_database_with_split(proof *proof, size_t bytes, unsigned cha
 
   write_buffer *write_buffer = &proof->buffer;
   int len = 0;
-  chars* substr_start = write_buffer->chars;
+  unsigned char* substr_start = write_buffer->chars;
 
   for (int i = 0; i < bytes; i++) {
     if (write_buffer->chars[i] != sep) {
       len++;
     } else {
-      redis_save(context, &proof->redis, len, substr_start);
-      substr_start = write_buffer->chars + len + 1;
+      substr_start[len] =  '\0'; // dirty hack
+      redis_save(context, &proof->redis, substr_start);
+      proof->redis->last_from_kissat_id += 1;
+      substr_start += len + 1;
       len = 0;
     }
   }
@@ -102,7 +100,6 @@ static void flush_buffer (proof *proof) {
   if (!bytes)
     return;
   save_in_database (proof, bytes);
-  proof->buffer.pos = 0;
 }
 
 void kissat_release_proof (kissat *solver) {

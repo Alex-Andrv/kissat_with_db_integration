@@ -60,6 +60,7 @@ static void learn_binary (kissat *solver, unsigned not_uip) {
 #ifndef NDEBUG
   const reference ref =
 #endif
+//     lbd = количество уровней различных уровней - 1?
       kissat_new_redundant_clause (solver, 1);
   assert (ref == INVALID_REF);
   kissat_assign_binary (solver, not_uip, other);
@@ -125,12 +126,9 @@ void kissat_learn_clause (kissat *solver) {
     kissat_update_learned (solver, glue, size);
   assert (size > 0);
   if (size == 1)
-    //    TODO
     learn_unit (solver, not_uip);
   else if (size == 2)
-    //    TODO
     learn_binary (solver, not_uip);
   else
-    //    TODO
     learn_reference (solver, not_uip, glue);
 }

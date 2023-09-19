@@ -775,6 +775,10 @@ static int run_application (kissat *solver, int argc, char **argv,
 #ifndef NPROOFS
   close_proof (&application);
 #endif
+
+  kissat_free (solver, solver->redis, sizeof (struct redis));
+  solver->redis = 0;
+
   if (res) {
     kissat_section (solver, "result");
     if (res == 20) {
