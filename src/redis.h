@@ -22,6 +22,8 @@ void redis_free(redisContext*);
 
 void redis_save(redisContext*, redis*, unsigned char*);
 
+void redis_save_last_from_kissat_id(redisContext*, unsigned int);
+
 bool load_clause(kissat*, redisContext*, redis*);
 
 #endif // REDIS_H

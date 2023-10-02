@@ -64,7 +64,7 @@ void kissat_init_proof (kissat *solver, bool binary) {
 }
 
 static void save_in_database_with_split(proof *proof, size_t bytes, unsigned char sep) {
-  redisContext* context = get_context(&proof->redis);
+  redisContext* context = get_context(proof->redis);
 
   write_buffer *write_buffer = &proof->buffer;
   int len = 0;
@@ -75,12 +75,18 @@ static void save_in_database_with_split(proof *proof, size_t bytes, unsigned cha
       len++;
     } else {
       substr_start[len] =  '\0'; // dirty hack
-      redis_save(context, &proof->redis, substr_start);
+      redis_save(context, proof->redis, substr_start);
       proof->redis->last_from_kissat_id += 1;
+
+      assert(proof->redis->last_from_kissat_id + 10 < UINT_MAX);
+//      TODO тут надо быть внимательнее, вот если задача большая, то точно переполнится
+
       substr_start += len + 1;
       len = 0;
     }
   }
+
+//  redis_save_last_from_kissat_id(context, &proof->redis->last_from_kissat_id)
   redis_free(context);
 
   strncpy(write_buffer->chars, substr_start, len);

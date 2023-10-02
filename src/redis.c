@@ -47,3 +47,15 @@ void redis_save(redisContext* context, redis* redis, unsigned char* substr_start
     }
   }
 }
+
+void redis_save_last_from_kissat_id(redisContext* context, unsigned int last_from_kissat_id) {
+  redisReply *reply = redisCommand(context,"SET last_from_kissat_id %d", last_from_kissat_id);
+  if (reply == NULL) {
+    if (context) {
+      printf("Error: %s\n", context->errstr);
+      // handle error
+    } else {
+      printf("Can't allocate redis context\n");
+    }
+  }
+}
